@@ -1,0 +1,506 @@
+basePath: /tcgasstation-backend/v1
+definitions:
+  request.ConfirmHistoriesReq:
+    properties:
+      data:
+        items:
+          properties:
+            btc_hash:
+              type: string
+            status:
+              type: string
+            tx_hash:
+              items:
+                type: string
+              type: array
+          type: object
+        type: array
+    type: object
+  request.EstimateWithdrawFeeReq:
+    properties:
+      tcTokenID:
+        type: string
+    type: object
+  request.GenerateDepositAddressReq:
+    properties:
+      tcAddress:
+        type: string
+    type: object
+  request.UpsertRedisRequest:
+    properties:
+      key:
+        type: string
+      value:
+        type: string
+    type: object
+  response.EstimateWithdrawFeeResp:
+    properties:
+      depositFee:
+        type: string
+      minDepositAmount:
+        type: string
+    type: object
+  response.GenerateDepositAddressResp:
+    properties:
+      depositAddress:
+        type: string
+      depositFee:
+        type: string
+      minDepositAmount:
+        type: string
+      tcAddress:
+        type: string
+    type: object
+  response.JsonResponse:
+    properties:
+      data: {}
+      error:
+        $ref: '#/definitions/response.RespondErr'
+      status:
+        type: boolean
+    type: object
+  response.RedisResponse:
+    properties:
+      value:
+        type: string
+    type: object
+  response.RespondErr:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+    type: object
+  response.UploadResponse:
+    properties:
+      created_at:
+        type: string
+      file_name:
+        type: string
+      url:
+        type: string
+    type: object
+  structure.CreateHistoryMessage:
+    properties:
+      btc_tx_hash:
+        type: string
+      currency:
+        type: string
+      dapp_type:
+        type: string
+      decimal:
+        type: integer
+      from_address:
+        type: string
+      time:
+        type: string
+      to_address:
+        type: string
+      tx_hash:
+        type: string
+      value:
+        type: string
+    type: object
+  structure.GenerateMessage:
+    properties:
+      address:
+        type: string
+      walletType:
+        type: string
+    type: object
+  structure.VerifyMessage:
+    properties:
+      address:
+        type: string
+      signature:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: This is a sample server tcgasstation-backend server.
+  title: tcDAPP APIs
+  version: 1.0.0
+paths:
+  /admin/redis:
+    delete:
+      consumes:
+      - application/json
+      description: Delete Redis
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.JsonResponse'
+            - properties:
+                data:
+                  type: string
+              type: object
+      summary: Delete Redis
+      tags:
+      - Admin
+    get:
+      consumes:
+      - application/json
+      description: Get Redis
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.JsonResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.RedisResponse'
+              type: object
+      summary: Get Redis
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      description: Upsert Redis
+      parameters:
+      - description: Upsert redis key
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpsertRedisRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.JsonResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.RedisResponse'
+              type: object
+      summary: Upsert Redis
+      tags:
+      - Admin
+  /admin/redis/{key}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete Redis
+      parameters:
+      - description: Redis key
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.JsonResponse'
+            - properties:
+                data:
+                  type: string
+              type: object
+      summary: Delete Redis
+      tags:
+      - Admin
+    get:
+      consumes:
+      - application/json
+      description: Get Redis
+      parameters:
+      - description: Redis key
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.JsonResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.RedisResponse'
+              type: object
+      summary: Get Redis
+      tags:
+      - Admin
+  /api/estimate-withdraw-fee:
+    post:
+      consumes:
+      - application/json
+      description: est fee for withdraw
+      parameters:
+      - description: token info
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/request.EstimateWithdrawFeeReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.EstimateWithdrawFeeResp'
+      summary: Generate a message
+      tags:
+      - Bridge
+  /api/generate-btc-deposit-address:
+    post:
+      consumes:
+      - application/json
+      description: Generate btc deposit address
+      parameters:
+      - description: tc address info
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/request.GenerateDepositAddressReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.GenerateDepositAddressResp'
+      summary: Generate btc deposit address
+      tags:
+      - Bridge
+  /auth/nonce:
+    post:
+      consumes:
+      - application/json
+      description: Generate a message for user's wallet
+      parameters:
+      - description: Generate message request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structure.GenerateMessage'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.JsonResponse'
+      summary: Generate a message
+      tags:
+      - Auth
+  /auth/nonce/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verified the generated message
+      parameters:
+      - description: Verify message request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structure.VerifyMessage'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.JsonResponse'
+      summary: Verified the generated message
+      tags:
+      - Auth
+  /bns-service/names:
+    get:
+      consumes:
+      - application/json
+      description: Get bns names
+      parameters:
+      - description: limit
+        in: query
+        name: limit
+        type: integer
+      - description: page
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.JsonResponse'
+      summary: Get bns names
+      tags:
+      - BNS-service
+  /profile/histories:
+    post:
+      consumes:
+      - application/json
+      description: Create profile's history
+      parameters:
+      - description: Generate message request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structure.CreateHistoryMessage'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.JsonResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create profile's history
+      tags:
+      - Profile
+    put:
+      consumes:
+      - application/json
+      description: confirm profile's history
+      parameters:
+      - description: request
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/request.ConfirmHistoriesReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.JsonResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: confirm profile's history
+      tags:
+      - Profile
+  /profile/me:
+    get:
+      consumes:
+      - application/json
+      description: Current user profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.JsonResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Current user profile
+      tags:
+      - Profile
+  /profile/wallet/{walletAddress}:
+    get:
+      consumes:
+      - application/json
+      description: User profile via wallet address
+      parameters:
+      - description: Wallet address
+        in: path
+        name: walletAddress
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.JsonResponse'
+      summary: User profile via wallet address
+      tags:
+      - Profile
+  /profile/wallet/{walletAddress}/histories:
+    get:
+      consumes:
+      - application/json
+      description: Current user histories
+      parameters:
+      - description: tx_hash
+        in: query
+        name: tx_hash
+        type: string
+      - description: limit
+        in: query
+        name: limit
+        type: integer
+      - description: page
+        in: query
+        name: page
+        type: integer
+      - description: default deployed_at_block
+        in: query
+        name: sort_by
+        type: string
+      - description: default -1
+        in: query
+        name: sort
+        type: integer
+      - description: Wallet address
+        in: path
+        name: walletAddress
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.JsonResponse'
+      summary: Current user histories
+      tags:
+      - Profile
+  /upload/file:
+    post:
+      consumes:
+      - application/json
+      description: Upload File
+      parameters:
+      - description: file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.UploadResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Upload File
+      tags:
+      - Uploader
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
