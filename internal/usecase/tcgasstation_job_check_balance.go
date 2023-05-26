@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (u *Usecase) TcGasStation_Job_CheckBalance() error {
+func (u *Usecase) JobTcGasStation_CheckBalance() error {
 
 	list, err := u.Repo.ListTcGasStationPending() // list pending
 

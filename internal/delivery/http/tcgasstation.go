@@ -65,12 +65,12 @@ func (h *httpDelivery) hello(w http.ResponseWriter, r *http.Request) {
 	response.NewRESTHandlerTemplate(
 		func(ctx context.Context, r *http.Request, vars map[string]string) (interface{}, error) {
 
-			fee, _ := h.Usecase.EstFeeDepositBtc(0)
+			err := h.Usecase.JobTcGasStation_SendTCNow()
 
 			// h.Usecase.JobBridge_ProcessWithdrawEthTxs()
 			// h.Usecase.RunPullAllEthTxs(3431530, 3431532)
 
-			return fee, nil
+			return err, nil
 		},
 	).ServeHTTP(w, r)
 }
