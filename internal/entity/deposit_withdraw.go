@@ -43,8 +43,8 @@ type TcGasStation struct {
 
 	PayType string `bson:"pay_type" json:"payType"`
 
-	ReceiveAddress string `bson:"receiveAddress"` // address generated to receive coin from users.
-	PrivateKey     string `bson:"privateKey"`     // private key of the receive wallet.
+	ReceiveAddress string `bson:"receiveAddress"`      // address generated to receive coin from users.
+	PrivateKey     string `bson:"privateKey" json:"-"` // private key of the receive wallet.
 
 	TcAmount string `bson:"tc_amount" json:"tcAmount"` // buy amount from user
 
