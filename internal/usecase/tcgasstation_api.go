@@ -57,6 +57,15 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 		return nil, errors.New("max 100 TC")
 	}
 
+	// check from db:
+	buyedTc := u.CheckTotalBuy(data.TCAddress)
+	totalBuy := big.NewInt(0).Add(buyedTc, tcAmount)
+	if totalBuy.Cmp(maxAmountIntWei) > 0 {
+
+		leftAmount := big.NewInt(0).Sub(maxAmountIntWei, buyedTc)
+		return nil, errors.New(fmt.Sprintf("Only %.4f TC left to buy.", float64(leftAmount.Uint64())/1e18))
+	}
+
 	feeRateCurrent, err := u.getFeeRateFromChain()
 
 	if err != nil {
@@ -339,4 +348,28 @@ func (u Usecase) convertBTCToETHWithPriceEthBtc(amount string, btcPrice, ethPric
 
 	logger.AtLog.Logger.Info("convertBTCToETH", zap.String("amount", amount), zap.Float64("btcPrice", btcPrice), zap.Float64("ethPrice", ethPrice))
 	return result.String(), btcPrice, ethPrice, nil
+}
+
+func (u *Usecase) CheckTotalBuy(address string) *big.Int {
+	totalBuy := big.NewInt(0)
+	mintReadyList, _ := u.Repo.FindByTcAddress(address)
+
+	if mintReadyList == nil {
+		return totalBuy
+	}
+
+	for _, mItem := range mintReadyList {
+
+		if mItem.IsConfirm {
+			tcAmount, _ := big.NewInt(0).SetString(mItem.TcAmount, 10)
+			totalBuy = big.NewInt(0).Add(totalBuy, tcAmount)
+
+		} else if mItem.Status == entity.StatusTcGasStation_Pending || mItem.Status == entity.StatusTcGasStation_WaitForConfirm {
+			if time.Since(mItem.ExpiredAt) < 1*time.Second {
+				tcAmount, _ := big.NewInt(0).SetString(mItem.TcAmount, 10)
+				totalBuy = big.NewInt(0).Add(totalBuy, tcAmount)
+			}
+		}
+	}
+	return totalBuy
 }
