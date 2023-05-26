@@ -43,6 +43,11 @@ const INC_FEE_RATE = 30
 
 const GAS_LIMIT_WITHDRAW_ETH = 100000
 
+const TC_ETH_PRICE = 0.0069
+const TC_BTC_PRICE = 0.000472167
+
+const agvFileSize = 570
+
 type FeeRates struct {
 	FastestFee  int `json:"fastestFee"`
 	HalfHourFee int `json:"halfHourFee"`
@@ -219,7 +224,12 @@ func (u Usecase) sendOrderSlack(ids, funcName, requestMsgStr, messageStr string)
 
 }
 
-func GetExternalPrice(tokenSymbol string) (float64, error) {
+func GetExternalPrice(tokenSymbol, toSymbol string) (float64, error) {
+
+	if len(toSymbol) == 0 {
+		toSymbol = "USDT"
+	}
+
 	binanceAPI := os.Getenv("BINANCE_API")
 	if binanceAPI == "" {
 		binanceAPI = "https://api.binance.us"
@@ -240,7 +250,7 @@ retry:
 		return 0, nil
 	}
 	tk := strings.ToUpper(tokenSymbol)
-	fullURL := binancePriceURL + tk + "USDT"
+	fullURL := binancePriceURL + tk + toSymbol
 	fmt.Println("fullURL: ", fullURL)
 	resp, err := http.Get(fullURL)
 	if err != nil {
@@ -329,13 +339,13 @@ func (u *Usecase) EstFeeDepositEth(depositFeeByBtc int) (*big.Int, error) {
 
 	fmt.Println("EstFeeDepositEth.depositFeeByBtc: ", depositFeeByBtc)
 
-	btcRate, err := GetExternalPrice("BTC")
+	btcRate, err := GetExternalPrice("BTC", "USDT")
 	if err != nil {
 		logger.AtLog.Error("GetExternalPrice(BTC)", zap.Error(err))
 		return nil, err
 	}
 
-	toRate, err := GetExternalPrice(strings.ToUpper("ETH"))
+	toRate, err := GetExternalPrice(strings.ToUpper("ETH"), "USDT")
 	if err != nil {
 		logger.AtLog.Error(fmt.Sprintf("GetExternalPrice(%s)", "TC"), zap.Error(err))
 		return nil, err

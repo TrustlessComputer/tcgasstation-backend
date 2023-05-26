@@ -115,6 +115,8 @@ type Config struct {
 	CronTabList []string
 
 	GoogleSecretKey string // read it from google
+
+	CaptcharSecret string
 }
 
 type Context struct {
@@ -242,6 +244,8 @@ func NewConfig(filePaths ...string) (*Config, error) {
 		CronTabList: regexp.MustCompile(`\s*[,;]\s*`).Split(os.Getenv("CRONTAB_LIST"), -1),
 
 		BitcoinParams: bitcoinParams,
+
+		CaptcharSecret: os.Getenv("RECAPTCHA_KEY"),
 	}
 
 	googleSecretKey, err := GetGoogleSecretKey(os.Getenv("SECRET_KEY"))

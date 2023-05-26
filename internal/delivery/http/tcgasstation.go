@@ -3,9 +3,15 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"tcgasstation-backend/internal/delivery/http/request"
 	"tcgasstation-backend/internal/delivery/http/response"
+	"tcgasstation-backend/utils/logger"
+	"time"
+
+	"go.uber.org/zap"
+	"gopkg.in/ezzarghili/recaptcha-go.v4"
 )
 
 // generateDepositAddress godoc
@@ -27,6 +33,22 @@ func (h *httpDelivery) generateDepositAddress(w http.ResponseWriter, r *http.Req
 			err := decoder.Decode(reqBody)
 			if err != nil {
 				return nil, err
+			}
+
+			if reqBody.RecaptchaResponse == "" {
+
+				err = errors.New("the recaptcha is required.")
+				return nil, err
+			}
+
+			if len(h.Usecase.Config.CaptcharSecret) > 0 {
+				captcha, _ := recaptcha.NewReCAPTCHA(h.Usecase.Config.CaptcharSecret, recaptcha.V3, 10*time.Second) // for v2 API get your secret from https://www.google.com/recaptcha/admin
+
+				err = captcha.Verify(reqBody.RecaptchaResponse)
+				if err != nil {
+					logger.AtLog.Logger.Error("h.generateDepositAddress.recaptcha.Verify", zap.String("err", err.Error()))
+					return nil, err
+				}
 			}
 
 			resp, err := h.Usecase.GenerateDepositAddress(reqBody)
