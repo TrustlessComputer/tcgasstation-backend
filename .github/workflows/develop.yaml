@@ -8,7 +8,7 @@ on:
 
 env:
   DOCKER_REGISTRY: gcr.io
-  DOCKER_IMAGE_NAME: trustless-computer-dev/tc-gasstation-backend
+  DOCKER_IMAGE_NAME: trustless-computer-dev/gasstation-backend
 
 jobs:
   build-and-push-to-gcr:
