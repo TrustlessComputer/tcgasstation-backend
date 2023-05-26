@@ -245,19 +245,20 @@ func NewConfig(filePaths ...string) (*Config, error) {
 
 		BitcoinParams: bitcoinParams,
 
-		CaptcharSecret: os.Getenv("RECAPTCHA_KEY"),
+		CaptcharSecret:  os.Getenv("RECAPTCHA_KEY"),
+		GoogleSecretKey: os.Getenv("SECRET_KEY"),
 	}
 
-	googleSecretKey, err := GetGoogleSecretKey(os.Getenv("SECRET_KEY"))
-	if err != nil {
-		if env == MainEnv {
-			panic("can not GetGoogleSecretKey")
-		} else {
-			googleSecretKey = os.Getenv("SECRET_KEY")
-		}
+	// googleSecretKey, err := GetGoogleSecretKey(os.Getenv("SECRET_KEY"))
+	// if err != nil {
+	// 	if env == MainEnv {
+	// 		panic("can not GetGoogleSecretKey")
+	// 	} else {
+	// 		googleSecretKey = os.Getenv("SECRET_KEY")
+	// 	}
 
-	}
-	conf.GoogleSecretKey = googleSecretKey
+	// }
+	// conf.GoogleSecretKey = googleSecretKey
 
 	return conf, nil
 }

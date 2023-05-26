@@ -14,7 +14,7 @@ const (
 	// for deposit+withdraw
 	StatusTcGasStation_Pending        StatusTcGasStation = iota // 0: wait for the payment
 	StatusTcGasStation_WaitForConfirm                           // 1: wait for confirm
-	StatusTcGasStation_TxConfirmed                              // 2: tx confirmed
+	StatusTcGasStation_ReceivedFund                             // 2: tx confirmed
 
 	// deposit:
 	StatusTcGasStation_SubmittedTransfer // 3: submitted transaction on Tc chain (will have tc tx)
@@ -36,7 +36,8 @@ type TcGasStation struct {
 
 	TcAddress string `bson:"tc_address" json:"tcAddress"` // user tc address
 
-	Status StatusTcGasStation `bson:"status" json:"status"`
+	Status    StatusTcGasStation `bson:"status" json:"status"`
+	IsConfirm bool               `bson:"is_confirmed" json:"isConfirmed"` // received fund
 
 	ExpiredAt time.Time `bson:"expired_at"`
 
@@ -45,7 +46,7 @@ type TcGasStation struct {
 	ReceiveAddress string `bson:"receiveAddress"` // address generated to receive coin from users.
 	PrivateKey     string `bson:"privateKey"`     // private key of the receive wallet.
 
-	AmountTcToBuy string `bson:"amount_tc_to_buy" json:"amountTcToBuy"` // buy amount from user
+	TcAmount string `bson:"tc_amount" json:"tcAmount"` // buy amount from user
 
 	PaymentFee    string `bson:"payment_fee" json:"paymentFee"`       // by pay type
 	PaymentAmount string `bson:"payment_amount" json:"paymentAmount"` // by pay type
@@ -57,6 +58,8 @@ type TcGasStation struct {
 	FeeInfo interface{} `bson:"fee_info" json:"feeInfo"` // some note...
 
 	Note string `bson:"note" json:"note"` // some note...
+
+	ReasonRefund string `bson:"reason_refund" json:"reasonRefund"`
 }
 
 func (t TcGasStation) CollectionName() string {

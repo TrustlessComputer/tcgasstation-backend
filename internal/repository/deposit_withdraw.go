@@ -4,15 +4,54 @@ import (
 	"context"
 	"strings"
 	"tcgasstation-backend/internal/entity"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+func (r Repository) ListTcGasStationPending() ([]entity.TcGasStation, error) {
+	resp := []entity.TcGasStation{}
+	filter := bson.M{
+		"status":     bson.M{"$in": []entity.StatusTcGasStation{entity.StatusTcGasStation_Pending, entity.StatusTcGasStation_WaitForConfirm}},
+		"expired_at": bson.M{"$gte": primitive.NewDateTimeFromTime(time.Now().UTC())},
+	}
+
+	cursor, err := r.DB.Collection(entity.TcGasStation{}.CollectionName()).Find(context.TODO(), filter)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = cursor.All(context.TODO(), &resp); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
 
 func (r *Repository) ListTcGasStationByStatus(statuses []entity.StatusTcGasStation) ([]*entity.TcGasStation, error) {
 	resp := []*entity.TcGasStation{}
 	filter := bson.M{
 		"status": bson.M{"$in": statuses},
+	}
+
+	cursor, err := r.DB.Collection(entity.TcGasStation{}.CollectionName()).Find(context.TODO(), filter)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = cursor.All(context.TODO(), &resp); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (r Repository) FindTcGasStationByTcTx(tx string) ([]*entity.TcGasStation, error) {
+	resp := []*entity.TcGasStation{}
+	filter := bson.M{
+		"tx_tc_process_buy": tx,
 	}
 
 	cursor, err := r.DB.Collection(entity.TcGasStation{}.CollectionName()).Find(context.TODO(), filter)

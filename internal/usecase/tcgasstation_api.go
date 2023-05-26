@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"strings"
 	"tcgasstation-backend/internal/delivery/http/request"
 	"tcgasstation-backend/internal/delivery/http/response"
 	"tcgasstation-backend/internal/entity"
@@ -130,7 +131,7 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 		expiredAt := time.Now().Add(time.Hour * time.Duration(expiredTime))
 
 		newDeposit := &entity.TcGasStation{
-			TcAddress:      data.TCAddress,
+			TcAddress:      strings.ToLower(data.TCAddress),
 			PayType:        data.PayType,
 			Status:         0, // pending
 			ExpiredAt:      expiredAt,
@@ -139,7 +140,7 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 			PaymentFee:     feeInfos[data.PayType].NetworkFee, // fee by payType
 			PaymentAmount:  totalPaymentInt.String(),          // fee by payType
 			FeeInfo:        feeInfos,
-			AmountTcToBuy:  tcAmount.String(),
+			TcAmount:       tcAmount.String(),
 		}
 		err = u.Repo.InsertTcGasStation(newDeposit)
 		if err != nil {
@@ -148,7 +149,7 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 		}
 		return &response.GenerateDepositAddressResp{
 			TCAddress:     newDeposit.TcAddress,
-			TcAmount:      newDeposit.AmountTcToBuy,
+			TcAmount:      newDeposit.TcAmount,
 			Address:       newDeposit.ReceiveAddress,
 			PaymentFee:    feeInfos[data.PayType].NetworkFee, // fee by payType
 			PaymentAmount: totalPaymentInt.String(),          // fee by payType
