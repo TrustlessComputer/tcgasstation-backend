@@ -372,6 +372,8 @@ func (c *Client) SendMulti(contractAddress, privateKeyStr string, toInfo map[str
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 
+	fmt.Println("SendMulti.fromAddress", fromAddress)
+
 	nonce, err := c.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
 		return "", err
