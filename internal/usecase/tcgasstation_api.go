@@ -28,7 +28,6 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 
 	var privateKey, privateKeyEnCrypt, receiveAddress string
 	var err error
-	var fee *big.Int = big.NewInt(0)
 
 	keyToEncrypt := os.Getenv("SECRET_KEY")
 
@@ -40,15 +39,17 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 		return nil, errors.New("tcAddress invalid")
 	}
 
-	tcAmount, ok := big.NewInt(0).SetString(data.TcAmount, 10)
-	if !ok {
-		return nil, errors.New("tcAmount invalid")
-	}
+	tcAmountFloat := big.NewFloat(data.TcAmount)
+	tcAmountFloat.Mul(tcAmountFloat, new(big.Float).SetFloat64(math.Pow10(18)))
+
+	tcAmount := new(big.Int)
+	tcAmountFloat.Int(tcAmount)
 
 	// todo check max 100TC?
 	maxAmountIntWei, _ := big.NewInt(0).SetString(big.NewInt(0).Mul(new(big.Int).SetInt64(MAX_TC_TO_BUY), new(big.Int).SetUint64(uint64(math.Pow10(18)))).String(), 10)
 
-	fmt.Println("tcAmount: ", tcAmount)
+	fmt.Println("tcAmount float: ", tcAmountFloat)
+	fmt.Println("tcAmount int: ", tcAmount)
 	fmt.Println("maxAmountIntWei: ", maxAmountIntWei)
 
 	if tcAmount.Cmp(maxAmountIntWei) > 0 {
@@ -101,7 +102,17 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 
 	}
 
-	fee = feeInfos[data.PayType].NetworkFeeBigInt
+	totalPaymentFloat, _ := big.NewFloat(0).SetString(feeInfos[data.PayType].TcPrice)
+	totalPaymentFloat = totalPaymentFloat.Mul(totalPaymentFloat, new(big.Float).SetFloat64(data.TcAmount))
+
+	fmt.Println("payment amount by tc amount: ", totalPaymentFloat)
+
+	totalPaymentInt := new(big.Int)
+	totalPaymentFloat.Int(totalPaymentInt)
+
+	totalPaymentInt = big.NewInt(0).Add(totalPaymentInt, feeInfos[data.PayType].NetworkFeeBigInt)
+
+	fmt.Println("payment amount + network by tc amount: ", totalPaymentFloat)
 
 	if len(privateKeyEnCrypt) > 0 {
 
@@ -122,8 +133,10 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 			ExpiredAt:      expiredAt,
 			ReceiveAddress: receiveAddress, // temp address for the user send to
 			PrivateKey:     privateKeyEnCrypt,
-			EstFee:         fee.String(), // fee by payType
+			PaymentFee:     feeInfos[data.PayType].NetworkFee, // fee by payType
+			PaymentAmount:  totalPaymentInt.String(),          // fee by payType
 			FeeInfo:        feeInfos,
+			AmountTcToBuy:  tcAmount.String(),
 		}
 		err = u.Repo.InsertTcGasStation(newDeposit)
 		if err != nil {
@@ -131,11 +144,13 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 			return nil, err
 		}
 		return &response.GenerateDepositAddressResp{
-			TCAddress: newDeposit.TcAddress,
-			Address:   newDeposit.ReceiveAddress,
-			EstFee:    newDeposit.EstFee,
-			ExpiredAt: &newDeposit.ExpiredAt,
-			FeeInfos:  feeInfos,
+			TCAddress:     newDeposit.TcAddress,
+			TcAmount:      newDeposit.AmountTcToBuy,
+			Address:       newDeposit.ReceiveAddress,
+			PaymentFee:    feeInfos[data.PayType].NetworkFee, // fee by payType
+			PaymentAmount: totalPaymentInt.String(),          // fee by payType
+			ExpiredAt:     &newDeposit.ExpiredAt,
+			FeeInfos:      feeInfos,
 		}, nil
 	}
 

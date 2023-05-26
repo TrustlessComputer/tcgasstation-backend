@@ -45,14 +45,14 @@ type TcGasStation struct {
 	ReceiveAddress string `bson:"receiveAddress"` // address generated to receive coin from users.
 	PrivateKey     string `bson:"privateKey"`     // private key of the receive wallet.
 
-	AmountInTC string `bson:"amount_tc" json:"amountTc"` // buy amount for user (in tc chain, dec 18)
-	Fee        string `bson:"fee" json:"fee"`            // deposit/withdraw fee decimal 18
+	AmountTcToBuy string `bson:"amount_tc_to_buy" json:"amountTcToBuy"` // buy amount from user
 
-	EstFee string `bson:"est_fee" json:"estFee"` // est fee decimal 18
+	PaymentFee    string `bson:"payment_fee" json:"paymentFee"`       // by pay type
+	PaymentAmount string `bson:"payment_amount" json:"paymentAmount"` // by pay type
 
-	AmountReceivedBuy string `bson:"amount_received_buy" json:"amountReceivedBuy"` // by btc, or eth ...
-	TxTcProcessBuy    string `bson:"tx_tc_process_buy" json:"txTcProcessBuy"`      // tx TC process buy on tc chain
-	TxBtcProcessBuy   string `bson:"tx_btc_process_buy" json:"txBtcProcessBuy"`    // tx btc inscribe to process buy
+	AmountReceived  string `bson:"amount_received" json:"amountReceived"`     // by btc, or eth ...
+	TxTcProcessBuy  string `bson:"tx_tc_process_buy" json:"txTcProcessBuy"`   // tx TC process buy on tc chain
+	TxBtcProcessBuy string `bson:"tx_btc_process_buy" json:"txBtcProcessBuy"` // tx btc inscribe to process buy
 
 	FeeInfo interface{} `bson:"fee_info" json:"feeInfo"` // some note...
 
