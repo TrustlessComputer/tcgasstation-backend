@@ -1,4 +1,4 @@
-APP=tcgasstation-backend
+APP=tc-gasstation-backend
 LDFLAGS+="-s -w"
 
 init:
