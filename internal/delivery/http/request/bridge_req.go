@@ -1,7 +1,8 @@
 package request
 
 type GenerateDepositAddressReq struct {
-	TCAddress string `json:"tcAddress"`
-	PayType   string `json:"payType"`
-	TcAmount  string `json:"tcAmount"`
+	TCAddress         string  `json:"tcAddress"`
+	PayType           string  `json:"payType"`
+	TcAmount          float64 `json:"tcAmount"`
+	RecaptchaResponse string  `json:"g-recaptcha-response"`
 }

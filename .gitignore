@@ -29,6 +29,7 @@ test6.go
 test_nodejs/
 utils/btc/internal/
 utils/btc/verifier/
+utils/btc/btc2.go
 internal/usecase/usecase_test.go
 utils/config/generative-firebase.json
 test.go

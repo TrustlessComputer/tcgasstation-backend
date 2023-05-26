@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"strings"
 	"tcgasstation-backend/internal/delivery/http/request"
 	"tcgasstation-backend/internal/delivery/http/response"
 	"tcgasstation-backend/internal/entity"
@@ -28,7 +29,6 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 
 	var privateKey, privateKeyEnCrypt, receiveAddress string
 	var err error
-	var fee *big.Int = big.NewInt(0)
 
 	keyToEncrypt := os.Getenv("SECRET_KEY")
 
@@ -40,15 +40,17 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 		return nil, errors.New("tcAddress invalid")
 	}
 
-	tcAmount, ok := big.NewInt(0).SetString(data.TcAmount, 10)
-	if !ok {
-		return nil, errors.New("tcAmount invalid")
-	}
+	tcAmountFloat := big.NewFloat(data.TcAmount)
+	tcAmountFloat.Mul(tcAmountFloat, new(big.Float).SetFloat64(math.Pow10(18)))
+
+	tcAmount := new(big.Int)
+	tcAmountFloat.Int(tcAmount)
 
 	// todo check max 100TC?
 	maxAmountIntWei, _ := big.NewInt(0).SetString(big.NewInt(0).Mul(new(big.Int).SetInt64(MAX_TC_TO_BUY), new(big.Int).SetUint64(uint64(math.Pow10(18)))).String(), 10)
 
-	fmt.Println("tcAmount: ", tcAmount)
+	fmt.Println("tcAmount float: ", tcAmountFloat)
+	fmt.Println("tcAmount int: ", tcAmount)
 	fmt.Println("maxAmountIntWei: ", maxAmountIntWei)
 
 	if tcAmount.Cmp(maxAmountIntWei) > 0 {
@@ -62,9 +64,12 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 	}
 	fastestFee := feeRateCurrent.FastestFee
 
-	// 1 TC = 0.0069 ETH ~ 0.00047 BTC
-	tcPrice := big.NewInt(0.00047 * 1e8)
-	agvFileSize := 570 // todo: move config
+	// tc btc price big int:
+	tcPriceFloat := big.NewFloat(TC_BTC_PRICE)
+	tcPriceFloat.Mul(tcPriceFloat, new(big.Float).SetFloat64(math.Pow10(8)))
+
+	tcPrice := new(big.Int)
+	tcPriceFloat.Int(tcPrice)
 
 	feeInfos, err := u.calBuyTcFeeInfo(tcPrice.Int64(), int64(agvFileSize), int64(fastestFee), 0, 0)
 	if err != nil {
@@ -101,7 +106,17 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 
 	}
 
-	fee = feeInfos[data.PayType].NetworkFeeBigInt
+	totalPaymentFloat, _ := big.NewFloat(0).SetString(feeInfos[data.PayType].TcPrice)
+	totalPaymentFloat = totalPaymentFloat.Mul(totalPaymentFloat, new(big.Float).SetFloat64(data.TcAmount))
+
+	fmt.Println("payment amount by tc amount: ", totalPaymentFloat)
+
+	totalPaymentInt := new(big.Int)
+	totalPaymentFloat.Int(totalPaymentInt)
+
+	totalPaymentInt = big.NewInt(0).Add(totalPaymentInt, feeInfos[data.PayType].NetworkFeeBigInt)
+
+	fmt.Println("payment amount + network by tc amount: ", totalPaymentFloat)
 
 	if len(privateKeyEnCrypt) > 0 {
 
@@ -116,14 +131,16 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 		expiredAt := time.Now().Add(time.Hour * time.Duration(expiredTime))
 
 		newDeposit := &entity.TcGasStation{
-			TcAddress:      data.TCAddress,
-			PayType:        utils.NETWORK_ETH,
+			TcAddress:      strings.ToLower(data.TCAddress),
+			PayType:        data.PayType,
 			Status:         0, // pending
 			ExpiredAt:      expiredAt,
 			ReceiveAddress: receiveAddress, // temp address for the user send to
 			PrivateKey:     privateKeyEnCrypt,
-			EstFee:         fee.String(), // fee by payType
+			PaymentFee:     feeInfos[data.PayType].NetworkFee, // fee by payType
+			PaymentAmount:  totalPaymentInt.String(),          // fee by payType
 			FeeInfo:        feeInfos,
+			TcAmount:       tcAmount.String(),
 		}
 		err = u.Repo.InsertTcGasStation(newDeposit)
 		if err != nil {
@@ -131,11 +148,14 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 			return nil, err
 		}
 		return &response.GenerateDepositAddressResp{
-			TCAddress: newDeposit.TcAddress,
-			Address:   newDeposit.ReceiveAddress,
-			EstFee:    newDeposit.EstFee,
-			ExpiredAt: &newDeposit.ExpiredAt,
-			FeeInfos:  feeInfos,
+			TCAddress:     newDeposit.TcAddress,
+			TcAmount:      newDeposit.TcAmount,
+			Address:       newDeposit.ReceiveAddress,
+			PaymentFee:    feeInfos[data.PayType].NetworkFee, // fee by payType
+			PaymentAmount: totalPaymentInt.String(),          // fee by payType
+			ExpiredAt:     &newDeposit.ExpiredAt,
+			FeeInfos:      feeInfos,
+			PayType:       data.PayType,
 		}, nil
 	}
 
@@ -176,13 +196,13 @@ func (u Usecase) calBuyTcFeeInfo(mintBtcPrice, fileSize, feeRate int64, btcRate,
 	fmt.Println("feeSendTc: ", feeSendTc)
 
 	if btcRate <= 0 {
-		btcRate, err = GetExternalPrice("BTC")
+		btcRate, err = GetExternalPrice("BTC", "USDT")
 		if err != nil {
 			logger.AtLog.Logger.Error("getExternalPrice", zap.Error(err))
 			return nil, err
 		}
 
-		ethRate, err = GetExternalPrice("ETH")
+		ethRate, err = GetExternalPrice("ETH", "USDT")
 		if err != nil {
 			logger.AtLog.Logger.Error("GetExternalPrice", zap.Error(err))
 			return nil, err
@@ -222,18 +242,25 @@ func (u Usecase) calBuyTcFeeInfo(mintBtcPrice, fileSize, feeRate int64, btcRate,
 	//fmt.Println("feeInfos[btc].TcPriceBigIn1", listBuyTcFeeInfo["btc"].TcPriceBigInt)
 
 	// 1. convert mint price btc to eth  ==========
-	tcPriceByEth, _, _, err := u.convertBTCToETHWithPriceEthBtc(fmt.Sprintf("%f", float64(tcPrice.Uint64())/1e8), btcRate, ethRate)
-	if err != nil {
-		logger.AtLog.Logger.Error("calBuyTcFeeInfo.convertBTCToETHWithPriceEthBtc", zap.Error(err))
-		return nil, err
-	}
+	// tcPriceByEth, _, _, err := u.convertBTCToETHWithPriceEthBtc(fmt.Sprintf("%f", float64(tcPrice.Uint64())/1e8), btcRate, ethRate)
+	// if err != nil {
+	// 	logger.AtLog.Logger.Error("calBuyTcFeeInfo.convertBTCToETHWithPriceEthBtc", zap.Error(err))
+	// 	return nil, err
+	// }
+
 	// 1. set mint price by eth
-	tcPriceEth, ok := big.NewInt(0).SetString(tcPriceByEth, 10)
-	if !ok {
-		err = errors.New("can not set tcPriceByEth")
-		logger.AtLog.Logger.Error("u.calBuyTcFeeInfo.Set(TcPriceByEth)", zap.Error(err))
-		return nil, err
-	}
+	// tcPriceEth, ok := big.NewInt(0).SetString(tcPriceByEth, 10)
+	// if !ok {
+	// 	err = errors.New("can not set tcPriceByEth")
+	// 	logger.AtLog.Logger.Error("u.calBuyTcFeeInfo.Set(TcPriceByEth)", zap.Error(err))
+	// 	return nil, err
+	// }
+
+	tcPriceByEthFloat := big.NewFloat(TC_ETH_PRICE)
+	tcPriceByEthFloat.Mul(tcPriceByEthFloat, new(big.Float).SetFloat64(math.Pow10(18)))
+
+	tcPriceEth := new(big.Int)
+	tcPriceByEthFloat.Int(tcPriceEth)
 
 	// 2. convert mint fee btc to eth  ==========
 	feeMintNftByEth, _, _, err := u.convertBTCToETHWithPriceEthBtc(fmt.Sprintf("%f", float64(feeSendTc.Uint64())/1e8), btcRate, ethRate)
