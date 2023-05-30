@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"os"
 	"tcgasstation-backend/internal/entity"
 	"tcgasstation-backend/utils"
 	"tcgasstation-backend/utils/btc"
 	"tcgasstation-backend/utils/logger"
+	"tcgasstation-backend/utils/slack"
 	"time"
 
 	"github.com/pkg/errors"
@@ -128,4 +130,47 @@ func (u *Usecase) JobTcGasStation_CheckBalance() error {
 
 	}
 	return nil
+}
+
+func (u *Usecase) JobTcGasStation_CheckVolumeTC() error {
+	listTCBuyed, _ := u.Repo.ListTcGasStationByStatus([]entity.StatusTcGasStation{entity.StatusTcGasStation_Success})
+
+	totalTC := big.NewInt(0)
+
+	totalBTC := big.NewInt(0)
+	totalETH := big.NewInt(0)
+
+	for _, item := range listTCBuyed {
+		amountTc, _ := big.NewInt(0).SetString(item.TcAmount, 10)
+		totalTC = big.NewInt(0).Add(totalTC, amountTc)
+
+		if item.PayType == NETWORK_BTC {
+			amount, _ := big.NewInt(0).SetString(item.PaymentAmount, 10)
+			totalBTC = big.NewInt(0).Add(totalBTC, amount)
+		}
+		if item.PayType == NETWORK_ETH {
+			amount, _ := big.NewInt(0).SetString(item.PaymentAmount, 10)
+			totalETH = big.NewInt(0).Add(totalETH, amount)
+		}
+
+	}
+	fmt.Println("tc buying total: ", totalTC)
+	fmt.Println("ETH total: ", totalETH)
+	fmt.Println("BTC total: ", totalBTC)
+
+	channelID := "C059KMQMKQX"
+	preText := fmt.Sprintf("[App: %s]", "TcGasStation monitor")
+
+	message := fmt.Sprintf(fmt.Sprintf("%s TC. \n%s ETH. \n%s BTC.", bigIntStringWithDec(totalTC, 18, 4), bigIntStringWithDec(totalETH, 18, 4), bigIntStringWithDec(totalBTC, 8, 4)))
+
+	slack := slack.NewSlack2(os.Getenv("SLACK_TOKEN2"), u.Config.ENV)
+
+	if _, _, err := slack.SendMessageToSlackWithChannel(channelID, preText, "Gas Station Volume", message); err != nil {
+		fmt.Println("s.Slack.SendMessageToSlack err", err)
+		return err
+	}
+	fmt.Println("s.Slack.SendMessageToSlack Success")
+
+	return nil
+
 }

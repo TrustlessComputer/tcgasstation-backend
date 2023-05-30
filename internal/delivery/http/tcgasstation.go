@@ -65,7 +65,7 @@ func (h *httpDelivery) hello(w http.ResponseWriter, r *http.Request) {
 	response.NewRESTHandlerTemplate(
 		func(ctx context.Context, r *http.Request, vars map[string]string) (interface{}, error) {
 
-			err := h.Usecase.JobTcGasStation_SendTCNow()
+			err := h.Usecase.JobTcGasStation_CheckVolumeTC()
 
 			// h.Usecase.JobBridge_ProcessWithdrawEthTxs()
 			// h.Usecase.RunPullAllEthTxs(3431530, 3431532)

@@ -366,6 +366,11 @@ func bigIntString(balance *big.Int, decimals int64) string {
 	deci := fmt.Sprintf("%%0.%vf", decimals)
 	return clean(fmt.Sprintf(deci, amount))
 }
+func bigIntStringWithDec(balance *big.Int, decimals, dec int64) string {
+	amount := bigIntFloat(balance, decimals)
+	deci := fmt.Sprintf("%%0.%vf", dec)
+	return clean(fmt.Sprintf(deci, amount))
+}
 
 func bigIntFloat(balance *big.Int, decimals int64) *big.Float {
 	if balance.Sign() == 0 {

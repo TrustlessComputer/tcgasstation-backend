@@ -22,6 +22,16 @@ func NewSlack(cnf Config) *Slack {
 	}
 }
 
+func NewSlack2(slackToken, env string) *Slack {
+	client := slack.New(slackToken)
+
+	return &Slack{
+		token:  slackToken,
+		client: client,
+		env:    env,
+	}
+}
+
 func (s Slack) postMessage(channelId string, messages ...slack.MsgOption) (string, string, error) {
 	return s.client.PostMessage(channelId, messages...)
 }
