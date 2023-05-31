@@ -172,7 +172,13 @@ func (u *Usecase) GenerateDepositAddress(data *request.GenerateDepositAddressReq
 }
 
 func (u *Usecase) HistoryTcGasStation(address string) ([]*entity.TcGasStation, error) {
-	return u.Repo.FindByTcAddress(address)
+	list, err := u.Repo.FindByTcAddress(address)
+	for _, item := range list {
+		item.StatusStr = item.StatusString()
+		item.TxBtcProcessBuy = item.TxBtcProcessBuyFull()
+		item.TxTcProcessBuy = item.TxTcProcessBuyFull()
+	}
+	return list, err
 }
 
 func (u Usecase) calBuyTcFeeInfo(mintBtcPrice, fileSize, feeRate int64, btcRate, ethRate float64) (map[string]entity.BuyTcFeeInfo, error) {

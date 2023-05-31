@@ -37,14 +37,16 @@ type TcGasStation struct {
 	TcAddress string `bson:"tc_address" json:"tcAddress"` // user tc address
 
 	Status    StatusTcGasStation `bson:"status" json:"status"`
-	IsConfirm bool               `bson:"is_confirmed" json:"isConfirmed"` // received fund
+	StatusStr string             `bson:"-" json:"statusStr"`
+
+	IsConfirm bool `bson:"is_confirmed" json:"isConfirmed"` // received fund
 
 	ExpiredAt time.Time `bson:"expired_at"`
 
 	PayType string `bson:"pay_type" json:"payType"`
 
-	ReceiveAddress string `bson:"receiveAddress"`      // address generated to receive coin from users.
-	PrivateKey     string `bson:"privateKey" json:"-"` // private key of the receive wallet.
+	ReceiveAddress string `bson:"receiveAddress" json:"receiveAddress"` // address generated to receive coin from users.
+	PrivateKey     string `bson:"privateKey" json:"-"`                  // private key of the receive wallet.
 
 	TcAmount string `bson:"tc_amount" json:"tcAmount"` // buy amount from user
 
@@ -64,6 +66,44 @@ type TcGasStation struct {
 
 func (t TcGasStation) CollectionName() string {
 	return "tc_gas_stations"
+}
+
+func (t *TcGasStation) IsExpired() bool {
+	return t.ExpiredAt.UTC().Unix() < time.Now().UTC().Unix()
+}
+
+func (t *TcGasStation) StatusString() string {
+	switch t.Status {
+	case StatusTcGasStation_Pending:
+		if t.IsExpired() {
+			return "Timed out"
+		}
+		return "Waiting for payment"
+	case StatusTcGasStation_WaitForConfirm:
+		return "Waiting for payment confirmation"
+	case StatusTcGasStation_ReceivedFund:
+		return "Waiting for sending"
+	case StatusTcGasStation_SubmittedTransfer, StatusTcGasStation_InscribedBtc:
+		return "Waiting for sending confirmation"
+	case StatusTcGasStation_Success:
+		return "Successful"
+	default:
+		return "Invalid"
+	}
+}
+
+func (t *TcGasStation) TxBtcProcessBuyFull() string {
+	if len(t.TxBtcProcessBuy) > 0 {
+		return "https://mempool.space/tx/" + t.TxBtcProcessBuy
+	}
+	return ""
+}
+func (t *TcGasStation) TxTcProcessBuyFull() string {
+
+	if len(t.TxTcProcessBuy) > 0 {
+		return "https://explorer.trustless.computer/tx/" + t.TxTcProcessBuy
+	}
+	return ""
 }
 
 func (u TcGasStation) ToBson() (*bson.D, error) {
