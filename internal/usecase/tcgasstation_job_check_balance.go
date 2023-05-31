@@ -158,7 +158,7 @@ func (u *Usecase) JobTcGasStation_CheckVolumeTC() error {
 	fmt.Println("ETH total: ", totalETH)
 	fmt.Println("BTC total: ", totalBTC)
 
-	channelID := "C059KMQMKQX"
+	channelID := "C05A2V6MC2W"
 	preText := fmt.Sprintf("[App: %s]", "TcGasStation monitor")
 
 	message := fmt.Sprintf(fmt.Sprintf("%s TC. \n%s ETH. \n%s BTC.", bigIntStringWithDec(totalTC, 18, 4), bigIntStringWithDec(totalETH, 18, 4), bigIntStringWithDec(totalBTC, 8, 4)))
