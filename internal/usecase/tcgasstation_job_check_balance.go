@@ -149,12 +149,11 @@ func (u *Usecase) JobTcGasStation_CheckVolumeTC() error {
 	for _, item := range listTCBuyed {
 		amountTc, _ := big.NewInt(0).SetString(item.TcAmount, 10)
 		totalTC = big.NewInt(0).Add(totalTC, amountTc)
-		requestBTC += 1
 
 		if item.PayType == NETWORK_BTC {
 			amount, _ := big.NewInt(0).SetString(item.PaymentAmount, 10)
 			totalBTC = big.NewInt(0).Add(totalBTC, amount)
-
+			requestBTC += 1
 			if _, ok := userBuyBtc[item.TcAddress]; !ok {
 				userBuyBtc[item.TcAddress] += 1
 			}
@@ -164,9 +163,9 @@ func (u *Usecase) JobTcGasStation_CheckVolumeTC() error {
 			amount, _ := big.NewInt(0).SetString(item.PaymentAmount, 10)
 			totalETH = big.NewInt(0).Add(totalETH, amount)
 			requestETH += 1
-		}
-		if _, ok := userBuyEth[item.TcAddress]; !ok {
-			userBuyEth[item.TcAddress] += 1
+			if _, ok := userBuyEth[item.TcAddress]; !ok {
+				userBuyEth[item.TcAddress] += 1
+			}
 		}
 
 	}
