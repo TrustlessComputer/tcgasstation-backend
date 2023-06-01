@@ -143,6 +143,9 @@ func (u *Usecase) JobTcGasStation_CheckVolumeTC() error {
 	requestETH := 0
 	requestBTC := 0
 
+	userBuyEth := make(map[string]int)
+	userBuyBtc := make(map[string]int)
+
 	for _, item := range listTCBuyed {
 		amountTc, _ := big.NewInt(0).SetString(item.TcAmount, 10)
 		totalTC = big.NewInt(0).Add(totalTC, amountTc)
@@ -151,11 +154,19 @@ func (u *Usecase) JobTcGasStation_CheckVolumeTC() error {
 		if item.PayType == NETWORK_BTC {
 			amount, _ := big.NewInt(0).SetString(item.PaymentAmount, 10)
 			totalBTC = big.NewInt(0).Add(totalBTC, amount)
+
+			if _, ok := userBuyBtc[item.TcAddress]; !ok {
+				userBuyBtc[item.TcAddress] += 1
+			}
+
 		}
 		if item.PayType == NETWORK_ETH {
 			amount, _ := big.NewInt(0).SetString(item.PaymentAmount, 10)
 			totalETH = big.NewInt(0).Add(totalETH, amount)
 			requestETH += 1
+		}
+		if _, ok := userBuyEth[item.TcAddress]; !ok {
+			userBuyEth[item.TcAddress] += 1
 		}
 
 	}
@@ -164,9 +175,10 @@ func (u *Usecase) JobTcGasStation_CheckVolumeTC() error {
 	fmt.Println("BTC total: ", totalBTC)
 
 	channelID := "C05A2V6MC2W"
+
 	preText := fmt.Sprintf("[App: %s]", "TcGasStation monitor")
 
-	message := fmt.Sprintf(fmt.Sprintf("%s TC. \n%s ETH (%d requests). \n%s BTC (%d requests).", bigIntStringWithDec(totalTC, 18, 4), bigIntStringWithDec(totalETH, 18, 4), requestETH, bigIntStringWithDec(totalBTC, 8, 4), requestBTC))
+	message := fmt.Sprintf(fmt.Sprintf("%s TC. \n%s ETH (%d requests/%d users). \n%s BTC (%d requests/%d users).", bigIntStringWithDec(totalTC, 18, 4), bigIntStringWithDec(totalETH, 18, 4), requestETH, len(userBuyEth), bigIntStringWithDec(totalBTC, 8, 4), requestBTC, len(userBuyBtc)))
 
 	slack := slack.NewSlack2(os.Getenv("SLACK_TOKEN2"), u.Config.ENV)
 
